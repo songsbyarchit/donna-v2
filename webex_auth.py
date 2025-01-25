@@ -3,13 +3,18 @@ import requests
 import os
 from dotenv import load_dotenv
 
+# Load environment variables from .env
+load_dotenv()
+
+# Retrieve values from .env
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+REDIRECT_URI = os.getenv("REDIRECT_URI")
+TOKEN_URL = os.getenv("TOKEN_URL")
+AUTH_URL = os.getenv("AUTH_URL")
+SCOPES = os.getenv("SCOPES")
+
 app = Flask(__name__)
-
-CLIENT_ID = "C182502a5660222223fc09cc60c1a46ccd747b5ff5eb78e357b4b16abdb2d4621"
-CLIENT_SECRET = "e8e166f33a9c0b4987bb3e724ff7f6d7a23891ae8cdf0d8324a10d02556c7bc9"
-REDIRECT_URI = "https://jennet-amazing-sailfish.ngrok-free.app"
-TOKEN_URL = "https://webexapis.com/v1/access_token"
-
 
 @app.route("/")
 def home():
@@ -39,6 +44,19 @@ def callback():
     else:
         return f"Failed to get access token: {response.text}"
 
+@app.route("/send_message")
+def send_message():
+    access_token = "YOUR_ACCESS_TOKEN_HERE"  # Replace with the actual access token
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    data = {
+        "roomId": "YOUR_ROOM_ID_HERE",  # Replace with the Webex room ID
+        "text": "Hello from Donna V2!",
+    }
+    response = requests.post("https://webexapis.com/v1/messages", headers=headers, json=data)
+    return f"Message sent! Response: {response.json()}"
 
 if __name__ == "__main__":
     app.run(port=5000)
