@@ -85,7 +85,7 @@ def send_message():
         "Content-Type": "application/json",
     }
     data = {
-        "roomId": "YOUR_ROOM_ID_HERE",  # Replace with the Webex room ID
+        "roomId": os.getenv("ROOM_ID"),  # Pull the room ID from .env
         "text": "Hello from Donna V2!",
     }
     response = requests.post("https://webexapis.com/v1/messages", headers=headers, json=data)
