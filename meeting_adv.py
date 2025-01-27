@@ -107,10 +107,12 @@ def book_meeting():
         try:
             calendar_service = get_google_calendar_service()
             google_event = {
+                "summary": meeting_details["title"],
                 "location": webex_meeting_link,
                 "description": f"""
-                Webex Meeting scheduled. 
-                Join here: {webex_meeting_link}
+                Join the Webex meeting using the details below:
+
+                Meeting Link: {webex_meeting_link}
                 Meeting Number: {meeting_number}
                 Dial: {meeting_dial}
                 Access Code: {access_code}
@@ -123,7 +125,7 @@ def book_meeting():
                     "dateTime": meeting_details["end"],
                     "timeZone": "Europe/London",
                 },
-                "attendees": [{"email": organizer_email}] + invitees,
+                "attendees": [{"email": "archit.sachdeva007@gmail.com"}] + invitees,
             }
             google_response = calendar_service.events().insert(calendarId="primary", body=google_event).execute()
         except Exception as google_error:
