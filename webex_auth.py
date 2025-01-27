@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 import json
 import datetime
 from dateutil import parser
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
 # Load environment variables from .env
 load_dotenv(dotenv_path=".env", override=True)
@@ -48,6 +50,11 @@ def callback():
         return f"Access Token: {token_info['access_token']}<br>Refresh Token: {token_info['refresh_token']}"
     else:
         return f"Failed to get access token: {response.text}"
+
+def get_google_calendar_service():
+    credentials_path = os.getenv("GOOGLE_CREDENTIALS")  # Get the path from .env
+    creds = Credentials.from_authorized_user_file(credentials_path, ["https://www.googleapis.com/auth/calendar"])
+    return build("calendar", "v3", credentials=creds)
 
 def refresh_access_token():
     data = {
@@ -116,7 +123,6 @@ def book_meeting():
 
         # Validate and adjust times
         now = datetime.datetime.now(datetime.timezone.utc)  # UTC timezone-aware
-        # Validate and adjust times
         start_time = parser.isoparse(meeting_details["start"])
         end_time = parser.isoparse(meeting_details.get("end", ""))
 
@@ -154,12 +160,42 @@ def book_meeting():
             json=webex_payload
         )
         print(f"Webex API response status code: {response.status_code}")
-        
-        if response.status_code in [200, 201]:
-            return {"message": "Meeting successfully booked!", "details": response.json()}
-        else:
+
+        if response.status_code not in [200, 201]:
             return {"error": "Failed to book meeting", "details": response.json()}, response.status_code
-    
+        
+        # Extract Webex meeting link
+        webex_meeting_link = response.json().get("webLink", "")
+        
+        # Add the meeting to Google Calendar
+        try:
+            calendar_service = get_google_calendar_service()  # Get Google Calendar API service
+            google_event = {
+                "summary": meeting_details["title"],
+                "location": webex_meeting_link,
+                "description": f"Webex Meeting scheduled via Donna V2. Join here: {webex_meeting_link}",
+                "start": {
+                    "dateTime": meeting_details["start"],
+                    "timeZone": "UTC",
+                },
+                "end": {
+                    "dateTime": meeting_details["end"],
+                    "timeZone": "UTC",
+                },
+                "attendees": [{"email": "archit.sachdeva007@gmail.com"}] + [{"email": invitee} for invitee in meeting_details["invitees"]] + [{"email": "arsachde@cisco.com"}],
+            }
+
+            google_response = calendar_service.events().insert(calendarId="primary", body=google_event).execute()
+            print(f"Google Calendar event created: {google_response.get('htmlLink')}")
+        except Exception as google_error:
+            print(f"Failed to add meeting to Google Calendar: {google_error}")
+            return {"error": "Meeting booked on Webex, but failed to add to Google Calendar."}
+
+        return {
+            "message": "Meeting successfully booked and added to Google Calendar!",
+            "details": response.json()
+        }
+
     except Exception as e:
         return {"error": str(e)}, 500
 
