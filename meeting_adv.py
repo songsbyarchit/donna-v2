@@ -70,38 +70,11 @@ def book_meeting():
         organizer_email = "archit.sachdeva007@gmail.com"
         invitees = [{"email": "arsachde@cisco.com"}] + [{"email": email} for email in meeting_details["invitees"]]
 
-        # Prepare Webex payload
-        access_token = os.getenv("ACCESS_TOKEN")
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json",
-        }
-        webex_payload = {
-            "title": meeting_details["title"],
-            "start": meeting_details["start"],
-            "end": meeting_details["end"],
-            "invitees": invitees,
-            "sendEmail": True,
-        }
-
-        response = requests.post(
-            "https://webexapis.com/v1/meetings",
-            headers=headers,
-            json=webex_payload,
-        )
-
-        if response.status_code not in [200, 201]:
-            return {"error": "Failed to book meeting", "details": response.json()}, response.status_code
-
-        # Use the Webex API-generated meeting link
-        webex_meeting_link = response.json().get("webLink")
-        if not webex_meeting_link:
-            return {"error": "Webex API did not return a meeting link."}, 500
-        meeting_number = response.json().get("meetingNumber")
-        meeting_dial = response.json().get("sipAddress", "N/A")
-        access_code = response.json().get("accessCode", "N/A")
-
-        webex_meeting_link = response.json().get("webLink")
+        # Static Webex meeting details
+        webex_meeting_link = "https://cisco.webex.com/meet/arsachde"
+        meeting_number = "1869 41 0779"
+        meeting_dial = "arsachde.cisco@webex.com"
+        access_code = "1869 41 0779"
 
         # Add the meeting to Google Calendar
         try:
@@ -127,13 +100,16 @@ def book_meeting():
                 },
                 "attendees": [{"email": "archit.sachdeva007@gmail.com"}] + invitees,
             }
-            google_response = calendar_service.events().insert(calendarId="primary", body=google_event).execute()
+            google_response = calendar_service.events().insert(
+                calendarId="primary", 
+                body=google_event, 
+                sendUpdates="all"
+            ).execute()
         except Exception as google_error:
             return {"error": "Meeting booked on Webex, but failed to add to Google Calendar."}
 
         return {
             "message": "Meeting successfully booked and added to Google Calendar!",
-            "details": response.json(),
             "webex_details": {
                 "meeting_link": webex_meeting_link,
                 "meeting_number": meeting_number,
